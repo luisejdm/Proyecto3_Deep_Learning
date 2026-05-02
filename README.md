@@ -1,5 +1,27 @@
 # Proyecto3_Deep_Learning
 
+## Project Organization
+
+```
+├── LICENSE # MIT License file
+├── README.md # Project documentation and setup guide
+├── requirements.txt # Python dependencies
+│
+├── notebooks/ # Jupyter notebooks for exploration and testing
+│ ├── 0.01-lejdm-yfinance-tools.ipynb # Initial exploration of yfinance tools for market data
+│ └── 3.01-lejdm-trying-qwen2.5-1.5B.ipynb # Testing Qwen2.5 model for potential alternatives
+│
+└── proyecto3_deep_learning/ # Main agent package
+├── agent.py # Core Agent class that orchestrates tool calling and response handling
+├── app.py # Gradio web interface for user interaction
+├── config.py # Configuration (model name, API keys, environment loading)
+├── main.py # Entry point to launch the Gradio app
+├── model.py # API-based model runner (LLaMA via NVIDIA NIM)
+├── parsing.py # Parses LLM responses into ACTION / FINAL commands
+├── prompts.py # System prompt with tool definitions and usage rules
+└── tools.py # Registry of all available tools (stock prices, portfolio optimization, Banxico data, etc.)
+```
+
 Financial tool-using agent with a Gradio interface. The system uses an LLM through NVIDIA NIM (OpenAI-compatible API), forces tool-calling behavior with a strict prompt, executes financial data tools, and returns both final answer and execution trace.
 
 ## Overview
@@ -55,25 +77,3 @@ BANXICO_TOKEN=your_banxico_token
 python -m pip install -r requirements.txt
 python proyecto3_deep_learning/main.py
 ```
-
-## Project Organization
-
-```
-LICENSE
-README.md
-requirements.txt
-notebooks/
-    0.01-lejdm-yfinance-tools.ipynb
-    3.01-lejdm-trying-qwen2.5-1.5B.ipynb
-proyecto3_deep_learning/
-    agent.py
-    app.py
-    config.py
-    main.py
-    model.py
-    parsing.py
-    prompts.py
-    styles.css
-    tools.py
-```
-
