@@ -8,12 +8,19 @@ import requests
 import datetime
 import pandas as pd
 
+from transformers import AutoTokenizer, AutoModelForSequenceClassification
+import torch
+import torch.nn.functional as F
+
 import os
 from dotenv import load_dotenv
 
 load_dotenv()
 BANXICO_TOKEN = os.getenv("BANXICO_TOKEN")
-
+HF_LOGIN_KEY = os.getenv("HF_LOGIN_KEY")
+if HF_LOGIN_KEY:
+    from huggingface_hub import login
+    login(HF_LOGIN_KEY)
 
 ToolFunction = Callable[..., object]
 
@@ -588,6 +595,150 @@ def get_exchange_rate(base: str, quote: str, date: str | None = None) -> str:
         return f"Invalid date format '{date}'. Please use YYYY-MM-DD (e.g. 2024-01-15)."
     except Exception as exc:
         return f"Error fetching exchange rate for {base}/{quote}: {exc}"
+    
+def _get_news(ticker: str) -> list[dict]:
+    t = yf.Ticker(ticker)
+    news = t.news
+    formated_news = []
+
+    for i in range(len(news)):
+        item = news[i]['content']
+        formated_news.append({
+            "pub_date": item.get("pubDate", ""),
+            "content_type": item.get("contentType", ""),
+            "title": item.get("title", ""),
+            "summary": item.get("summary", ""),
+            "provider": item.get("provider", {}).get("displayName", "N/A"),
+        })
+    return formated_news
+
+_finbert_tokenizer = None
+_finbert_model = None
+
+def _load_finbert():
+    global _finbert_tokenizer, _finbert_model
+    if _finbert_model is None:
+        _finbert_tokenizer = AutoTokenizer.from_pretrained("ProsusAI/finbert")
+        _finbert_model = AutoModelForSequenceClassification.from_pretrained("ProsusAI/finbert")
+        _finbert_model.eval()
+    return _finbert_tokenizer, _finbert_model
+
+_LABEL_TO_SCORE = {
+    "positive": 1,
+    "neutral": 0,
+    "negative": -1
+}
+
+_SCORE_TO_LABEL = {
+    lambda s: s > 0.15: "positive",
+    lambda s: s < -0.15: "negative",    
+}
+
+def _bucket_label(score: float) -> str:
+    if score > 0.15:
+        return "positive"
+    if score < -0.15:
+        return "negative"
+    return "neutral"
+
+def _recency_weights(pub_dates: list[str]) -> list[float]:
+    decay = 0.01  
+    parsed = []
+    for d in pub_dates:
+        try:
+            dt = datetime.datetime.fromisoformat(d.replace("Z", "+00:00"))
+            parsed.append(dt)
+        except (ValueError, AttributeError):
+            parsed.append(None)
+
+    valid = [dt for dt in parsed if dt is not None]
+    if not valid:
+        return [1.0] * len(pub_dates)
+
+    most_recent = max(valid)
+    weights = []
+    for dt in parsed:
+        if dt is None:
+            weights.append(0.5)
+        else:
+            hours_old = (most_recent - dt).total_seconds() / 3600
+            weights.append(float(np.exp(-decay * hours_old)))
+    return weights
+
+def _score_texts(texts: list[str]) -> list[dict]:
+    """Returns a list of {label, confidence} dicts, one per input text."""
+    tokenizer, model = _load_finbert()
+    results = []
+    with torch.no_grad():
+        for text in texts:
+            inputs = tokenizer(
+                text,
+                return_tensors="pt",
+                truncation=True,
+                max_length=512,
+                padding=True,
+            )
+            logits = model(**inputs).logits
+            probs  = F.softmax(logits, dim=-1).squeeze()
+            # FinBERT label order: positive=0, negative=1, neutral=2
+            label_map = {0: "positive", 1: "negative", 2: "neutral"}
+            pred_idx   = int(probs.argmax())
+            results.append({
+                "label":      label_map[pred_idx],
+                "confidence": float(probs[pred_idx]),
+            })
+    return results
+
+@tool("get_news_sentiment")
+def get_news_sentiment(ticker: str) -> str:
+    """Fetches recent news for a ticker and returns a FinBERT-based
+    sentiment score aggregated across all available headlines."""
+    articles = _get_news(ticker)
+    comp_name = yf.Ticker(ticker).info.get("longName", ticker)
+    if not articles:
+        return f"No recent news found for {ticker}."
+
+    texts   = [f"{a['title']}. {a['summary']}".strip() for a in articles]
+    scores  = _score_texts(texts)
+    weights = _recency_weights([a["pub_date"] for a in articles])
+
+    weighted_sum   = 0.0
+    total_weight   = 0.0
+    scored_articles = []
+
+    for article, score, weight in zip(articles, scores, weights):
+        numeric = _LABEL_TO_SCORE[score["label"]]
+        contribution = numeric * score["confidence"] * weight
+        weighted_sum  += contribution
+        total_weight  += weight
+        scored_articles.append({
+            "title":       article["title"],
+            "provider":    article["provider"],
+            "label":       score["label"],
+            "confidence":  score["confidence"],
+            "weight":      round(weight, 4),
+            "pub_date":    article["pub_date"],
+        })
+
+    composite = weighted_sum / total_weight if total_weight > 0 else 0.0
+    composite = max(-1.0, min(1.0, composite))
+    label     = _bucket_label(composite)
+    label     = label.upper()
+
+    scored_articles.sort(
+        key=lambda x: abs(_LABEL_TO_SCORE[x["label"]] * x["confidence"] * x["weight"]),
+        reverse=True,
+    )
+    top_headlines = " --- ".join(
+        f"[{a['label'].upper()} {a['confidence']:.0%}] {a['title']} ({a['provider']})"
+        for a in scored_articles[:5]
+    )
+
+    return (
+        f"Sentiment analysis for {comp_name} ({ticker.upper()}) across {len(articles)} recent articles: "
+        f"Composite score: {composite:+.4f} ({label}). "
+        f"Top influencing headlines: {top_headlines}"
+    )
     
 @tool("respond_to_greeting")
 def respond_to_greeting() -> str:

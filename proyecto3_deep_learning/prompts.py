@@ -192,6 +192,22 @@ Example calls: ACTION: get_exchange_rate(EUR, USD)
                ACTION: get_exchange_rate(GBP, JPY, 2024-03-15)
                ACTION: get_exchange_rate(USD, CAD)
 
+### get_news_sentiment(ticker)
+Description: Fetches recent news articles for a stock ticker and returns a FinBERT-based
+             sentiment score aggregated across all available headlines.
+             Each article is scored (positive / neutral / negative) and weighted by recency
+             using exponential decay so the most recent news has the highest influence.
+             The composite score ranges from -1 (fully negative) to +1 (fully positive);
+             scores above 0.15 are labelled POSITIVE, below -0.15 are NEGATIVE, otherwise NEUTRAL.
+             Apply the same exchange suffix rules as get_price_on_date.
+             Use this when the user asks about market sentiment, news tone, or recent coverage of a stock.
+Returns: "Sentiment analysis for <Company Name> (<TICKER>) across <N> recent articles:
+          Composite score: <score> (<LABEL>).
+          Top influencing headlines: [LABEL CONFIDENCE%] <title> (<provider>) --- ..."
+Example calls: ACTION: get_news_sentiment(AAPL)
+               ACTION: get_news_sentiment(TSLA)
+               ACTION: get_news_sentiment(BIMBOA.MX)
+
 ### respond_to_greeting()
 Description: Responds to user greetings with a friendly introduction about the agent.
              Use this when the user greets you or asks a general question like "Hi", "Hello", "What are you?".
@@ -203,12 +219,6 @@ Description: Responds when a user asks for a tool or action that is not availabl
              Use this when the user requests functionality that doesn't match any available tool.
 Returns: "Sorry, currently i'm capable of doing that. Check the list of available tools with 'list_tools' command."
 Example call: ACTION: respond_no_available_tool()
-
-### list_tools()
-Description: Returns a list of all available tools the agent can use.
-             Use this when the user asks to see what tools are available or requests a command like 'list_tools'.
-Returns: "Available tools:\n- tool1\n- tool2\n..."
-Example call: ACTION: list_tools()
 
 === END OF TOOLS ===
 
@@ -249,6 +259,14 @@ After tool result: FINAL: To maximize risk-adjusted return, the optimal weights 
 User: How should I allocate $100k between Apple, Nvidia, and Intel to minimize downside risk below the S&P 500?
 ACTION: min_target_semivariance_portfolio(AAPL, NVDA, INTC)
 After tool result: FINAL: To minimize downside risk relative to the S&P 500, the optimal weights across Apple, Nvidia, and Intel are AAPL: 40%, NVDA: 30%, INTC: 30%, with an expected annual return of 19.00% and annualized volatility of 15.80%.
+
+User: What is the sentiment around Tesla news?
+ACTION: get_news_sentiment(TSLA)
+After tool result: FINAL: Sentiment analysis for Tesla, Inc. (TSLA) across 8 recent articles: Composite score: +0.3142 (POSITIVE). Top influencing headlines: [POSITIVE 92%] Tesla beats Q1 delivery estimates (Reuters) --- [NEGATIVE 85%] Tesla faces renewed pressure on margins (Bloomberg) --- ...
+
+User: What is the market sentiment for Apple stock right now?
+ACTION: get_news_sentiment(AAPL)
+After tool result: FINAL: Sentiment analysis for Apple Inc. (AAPL) across 10 recent articles: Composite score: +0.1823 (POSITIVE). Top influencing headlines: [POSITIVE 88%] Apple reports record services revenue (CNBC) --- ...
 
 User: What is the current 10-year treasury rate?
 ACTION: search_fred(10-year treasury constant maturity rate)
