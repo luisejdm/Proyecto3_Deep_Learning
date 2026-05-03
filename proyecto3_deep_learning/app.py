@@ -107,6 +107,7 @@ def build_demo() -> gr.Blocks:
             | Check Mexican TIE interest rates | "Show me the 91-day TIE rate" |
             | Know Mexico's central bank interest rate | "What is Mexico's target interest rate right now?" |
             | Get cross-currency exchange rates | "What's the current exchange rate for EUR/USD?" |
+            | Analyze news sentiment for a stock | "What is the market sentiment around Tesla right now?" |
 
             """
         )
