@@ -108,6 +108,7 @@ def build_demo() -> gr.Blocks:
             | Know Mexico's central bank interest rate | "What is Mexico's target interest rate right now?" |
             | Get cross-currency exchange rates | "What's the current exchange rate for EUR/USD?" |
             | Analyze news sentiment for a stock | "What is the market sentiment around Tesla right now?" |
+            | Calculate the impact of inflation | "how much would inflation in mexico affect my 1000 pesos over 5 months?" |
 
             """
         )

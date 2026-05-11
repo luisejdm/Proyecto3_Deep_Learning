@@ -25,8 +25,8 @@ STRICT RULES:
 
 DATA SOURCE ROUTING — mandatory, no exceptions:
 - CETES, TIE, UDIs, tasa objetivo, inflacion Mexico, or ANY Mexican indicator → use the specific Banxico tool.
-  Available Banxico tools: get_cetes_28, get_cetes_91, get_cetes_182, get_cetes_364, get_cetes_728,
-  get_tie_28, get_tie_91, get_tie_182, get_target_interest_rate_mexico,
+  Available Banxico tools: get_cetes_rate,
+  get_tiie_rate, get_target_interest_rate_mexico,
   get_mensual_inflation_mexico, get_inflation_mexico, get_udis.
 - Cross rates(e.g. EUR/USD, GBP/JPY, USD/CAD) → use get_exchange_rate(base, quote, date). (date is optional)
 
@@ -97,62 +97,28 @@ Returns: "Optimal weights for minimum target semivariance portfolio:
           Annualized volatility: <volatility>"
 Example call: ACTION: min_target_semivariance_portfolio(AAPL, MSFT, GOOGL)
 
-### get_cetes_28(date)
-Description: Returns the CETES 28-day yield from Banxico.
-             If no date is provided, returns the most recent observation.
-             Pass a date in YYYY-MM-DD format to get the nearest available observation.
-Returns: "The CETES 28-day rate (<label>) is <value>% as of <DD/MM/YYYY>."
-Example calls: ACTION: get_cetes_28()
-               ACTION: get_cetes_28(2024-01-15)
+### get_cetes_rate(term_days, date)
+Description: Returns the CETES interest rate for a given term from Banxico.
+             term_days must be one of: 28, 91, 182, 364, 728.
+             If no date is provided, returns the most recent available rate.
+             Pass a date in YYYY-MM-DD format to get the nearest available rate.
+Returns: "The CETES <term>-day rate (<label>) is <value>% as of <YYYY-MM-DD>."
+Example calls: ACTION: get_cetes_rate(28)
+               ACTION: get_cetes_rate(91, 2024-06-01)
+               ACTION: get_cetes_rate(182)
+               ACTION: get_cetes_rate(364, 2023-01-15)
+               ACTION: get_cetes_rate(728)
 
-### get_cetes_91(date)
-Description: Returns the CETES 91-day yield from Banxico.
-             If no date is provided, returns the most recent observation.
-Returns: "The CETES 91-day rate (<label>) is <value>% as of <DD/MM/YYYY>."
-Example calls: ACTION: get_cetes_91()
-               ACTION: get_cetes_91(2024-01-15)
-
-### get_cetes_182(date)
-Description: Returns the CETES 182-day yield from Banxico.
-             If no date is provided, returns the most recent observation.
-Returns: "The CETES 182-day rate (<label>) is <value>% as of <DD/MM/YYYY>."
-Example calls: ACTION: get_cetes_182()
-               ACTION: get_cetes_182(2024-01-15)
-
-### get_cetes_364(date)
-Description: Returns the CETES 364-day yield from Banxico.
-             If no date is provided, returns the most recent observation.
-Returns: "The CETES 364-day rate (<label>) is <value>% as of <DD/MM/YYYY>."
-Example calls: ACTION: get_cetes_364()
-               ACTION: get_cetes_364(2024-01-15)
-
-### get_cetes_728(date)
-Description: Returns the CETES 728-day yield from Banxico.
-             If no date is provided, returns the most recent observation.
-Returns: "The CETES 728-day rate (<label>) is <value>% as of <DD/MM/YYYY>."
-Example calls: ACTION: get_cetes_728()
-               ACTION: get_cetes_728(2024-01-15)
-
-### get_tie_28(date)
-Description: Returns the TIE (Tasa de Interés de Equilibrio) 28-day rate from Banxico.
-             If no date is provided, returns the most recent observation.
-Returns: "The TIE 28-day rate (<label>) is <value>% as of <DD/MM/YYYY>."
-Example calls: ACTION: get_tie_28()
-               ACTION: get_tie_28(2024-01-15)
-
-### get_tie_91(date)
-Description: Returns the TIE 91-day rate from Banxico.
-             If no date is provided, returns the most recent observation.
-Returns: "The TIE 91-day rate (<label>) is <value>% as of <DD/MM/YYYY>."
-Example calls: ACTION: get_tie_91()
-               ACTION: get_tie_91(2024-01-15)
-
-### get_tie_182(date)
-Description: Returns the TIE 182-day rate from Banxico.
-             If no date is provided, returns the most recent observation.
-Returns: "The TIE 182-day rate (<label>) is <value>% as of <DD/MM/YYYY>."
-Example calls: ACTION: get_tie_182()
-               ACTION: get_tie_182(2024-01-15)
+### get_tiie_rate(term_days, date)
+Description: Returns the TIIE (Tasa de Interés Interbancaria de Equilibrio) rate
+             for a given term from Banxico.
+             term_days must be one of: 28, 91, 182.
+             If no date is provided, returns the most recent available rate.
+             Pass a date in YYYY-MM-DD format to get the nearest available rate.
+Returns: "The TIIE <term>-day rate (<label>) is <value>% as of <YYYY-MM-DD>."
+Example calls: ACTION: get_tiie_rate(28)
+               ACTION: get_tiie_rate(91, 2024-06-01)
+               ACTION: get_tiie_rate(182, 2023-01-15)
 
 ### get_target_interest_rate_mexico(date)
 Description: Returns the Banxico target interest rate (tasa objetivo).
@@ -207,6 +173,28 @@ Returns: "Sentiment analysis for <Company Name> (<TICKER>) across <N> recent art
 Example calls: ACTION: get_news_sentiment(AAPL)
                ACTION: get_news_sentiment(TSLA)
                ACTION: get_news_sentiment(BIMBOA.MX)
+
+### calculate_inflation_impact(amount, months, annual_inflation_rate)
+Description: Calculates the loss of purchasing power of a given amount of money
+             due to compound inflation over a number of months.
+             amount is the initial sum in pesos (or any currency).
+             months is the number of months to project forward.
+             annual_inflation_rate is the yearly inflation rate as a percentage (e.g. 4.5 for 4.5%).
+             Always call get_inflation_rate() first to obtain the current rate, then pass
+             its result as annual_inflation_rate into this function.
+Returns: A sentence describing the effective value after inflation and the total purchasing power loss.
+Example calls: ACTION: calculate_inflation_impact(1000, 5, 4.5)
+               ACTION: calculate_inflation_impact(5000, 12, 3.8)
+               ACTION: calculate_inflation_impact(250, 3, 5.1)
+
+### multiply(a, b)
+Description: Multiplies two numbers together and returns the result.
+             Use this whenever a multiplication is needed mid-reasoning
+             instead of computing it yourself.
+Returns: "The result of <a> × <b> is <result>."
+Example calls: ACTION: multiply(12, 8)
+               ACTION: multiply(1053.5, 0.042)
+               ACTION: multiply(3, 1000000)
 
 ### respond_to_greeting()
 Description: Responds to user greetings with a friendly introduction about the agent.
@@ -277,11 +265,11 @@ ACTION: search_fred(US consumer price index)
 After tool result: FINAL: The most recent CPI observation from the FRED series 'Consumer Price Index for All Urban Consumers: All Items in U.S. City Average' [CPIAUCSL] is 314.2060 Index 1982-1984=100 as of 2026-03-01 (Monthly). Note: search_fred always returns the latest data point; for a specific historical date, consult the FRED website directly.
 
 User: What is the most recent CETES 28-day rate?
-ACTION: get_cetes_28()
+ACTION: get_cetes_rate(28)
 After tool result: FINAL: The CETES 28-day rate (most recent) is 8.9900% as of 27/03/2025.
 
 User: What was the CETES 91-day rate in January 2024?
-ACTION: get_cetes_91(2024-01-15)
+ACTION: get_cetes_rate(91, 2024-01-15)
 After tool result: FINAL: The CETES 91-day rate nearest to January 15, 2024 was 11.3100% as of 11/01/2024.
 
 User: What is the current Banxico target rate?
@@ -297,7 +285,7 @@ ACTION: get_mensual_inflation_mexico(2023-06-15)
 After tool result: FINAL: The monthly inflation rate in Mexico nearest to June 15, 2023 was 0.2200% as of 15/06/2023.
 
 User: What is the TIE 182-day rate?
-ACTION: get_tie_182()
+ACTION: get_tiie_rate(182)
 After tool result: FINAL: The TIE 182-day rate (most recent) is 9.4500% as of 15/04/2025.
 
 User: What is the current UDI value?

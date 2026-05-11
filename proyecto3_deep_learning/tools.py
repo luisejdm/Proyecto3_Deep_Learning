@@ -163,15 +163,30 @@ def min_target_semivariance_portfolio(*tickers: str) -> str:
         f"Annualized volatility: {(np.sqrt(result.x.T @ cov_matrix @ result.x) * np.sqrt(252)):.2%}"
     )
     
-@tool("get_cetes_28")
-def get_cetes_28(date: str | None = None) -> str:
-    URL = "https://www.banxico.org.mx/SieAPIRest/service/v1/series/SF43936/datos"
+CETES_SERIES = {
+    28:  "SF43936",
+    91:  "SF43939",
+    182: "SF43942",
+    364: "SF43945",
+    728: "SF349785",
+}
+
+@tool("get_cetes_rate")
+def get_cetes_rate(term_days: int, date: str | None = None) -> str:
+    #valid days are the ones displayed above
+    if term_days not in CETES_SERIES:
+        valid = ", ".join(str(k) for k in CETES_SERIES)
+        return f"Invalid term '{term_days}'. Valid options are: {valid}."
+
+    series_id = CETES_SERIES[term_days]
+    url = f"https://www.banxico.org.mx/SieAPIRest/service/v1/series/{series_id}/datos"
     headers = {
         "Bmx-Token": BANXICO_TOKEN,
         "Content-Type": "application/json",
     }
+
     try:
-        response = requests.get(URL, headers=headers)
+        response = requests.get(url, headers=headers)
         response.raise_for_status()
 
         obs_list = response.json()["bmx"]["series"][0]["datos"]
@@ -185,149 +200,17 @@ def get_cetes_28(date: str | None = None) -> str:
                 key=lambda o: abs(datetime.datetime.strptime(o["fecha"], "%d/%m/%Y") - target),
             )
 
-        fecha = obs["fecha"]
-        fecha = datetime.datetime.strptime(fecha, "%d/%m/%Y").strftime("%Y-%m-%d")
+        fecha = datetime.datetime.strptime(obs["fecha"], "%d/%m/%Y").strftime("%Y-%m-%d")
         value = float(obs["dato"])
         label = f"nearest to {date}" if date else "most recent"
-        return f"The CETES 28-day rate ({label}) is {value:.4f}% as of {fecha}."
+        return f"The CETES {term_days}-day rate ({label}) is {value:.4f}% as of {fecha}."
 
     except ValueError:
         return f"Invalid date format '{date}'. Please use YYYY-MM-DD (e.g. 2024-01-15)."
     except Exception as exc:
-        return f"Error fetching CETES 28-day rate: {exc}"
+        return f"Error fetching CETES {term_days}-day rate: {exc}"
 
-@tool("get_cetes_91")
-def get_cetes_91(date: str | None = None) -> str:
-    URL = "https://www.banxico.org.mx/SieAPIRest/service/v1/series/SF43939/datos"
-    headers = {
-        "Bmx-Token": BANXICO_TOKEN,
-        "Content-Type": "application/json",
-    }
-    try:
-        response = requests.get(URL, headers=headers)
-        response.raise_for_status()
 
-        obs_list = response.json()["bmx"]["series"][0]["datos"]
-
-        if date is None:
-            obs = obs_list[-1]
-        else:
-            target = datetime.datetime.strptime(date, "%Y-%m-%d")
-            obs = min(
-                obs_list,
-                key=lambda o: abs(datetime.datetime.strptime(o["fecha"], "%d/%m/%Y") - target),
-            )
-
-        fecha = obs["fecha"]
-        fecha = datetime.datetime.strptime(fecha, "%d/%m/%Y").strftime("%Y-%m-%d")
-        value = float(obs["dato"])
-        label = f"nearest to {date}" if date else "most recent"
-        return f"The CETES 91-day rate ({label}) is {value:.4f}% as of {fecha}."
-
-    except ValueError:
-        return f"Invalid date format '{date}'. Please use YYYY-MM-DD (e.g. 2024-01-15)."
-    except Exception as exc:
-        return f"Error fetching CETES 91-day rate: {exc}"
-    
-@tool("get_cetes_182")
-def get_cetes_182(date: str | None = None) -> str:
-    URL = "https://www.banxico.org.mx/SieAPIRest/service/v1/series/SF43942/datos"
-    headers = {
-        "Bmx-Token": BANXICO_TOKEN,
-        "Content-Type": "application/json",
-    }
-    try:
-        response = requests.get(URL, headers=headers)
-        response.raise_for_status()
-
-        obs_list = response.json()["bmx"]["series"][0]["datos"]
-
-        if date is None:
-            obs = obs_list[-1]
-        else:
-            target = datetime.datetime.strptime(date, "%Y-%m-%d")
-            obs = min(
-                obs_list,
-                key=lambda o: abs(datetime.datetime.strptime(o["fecha"], "%d/%m/%Y") - target),
-            )
-
-        fecha = obs["fecha"]
-        fecha = datetime.datetime.strptime(fecha, "%d/%m/%Y").strftime("%Y-%m-%d")
-        value = float(obs["dato"])
-        label = f"nearest to {date}" if date else "most recent"
-        return f"The CETES 182-day rate ({label}) is {value:.4f}% as of {fecha}."
-
-    except ValueError:
-        return f"Invalid date format '{date}'. Please use YYYY-MM-DD (e.g. 2024-01-15)."
-    except Exception as exc:
-        return f"Error fetching CETES 182-day rate: {exc}"
-    
-@tool("get_cetes_364")
-def get_cetes_364(date: str | None = None) -> str:
-    URL = "https://www.banxico.org.mx/SieAPIRest/service/v1/series/SF43945/datos"
-    headers = {
-        "Bmx-Token": BANXICO_TOKEN,
-        "Content-Type": "application/json",
-    }
-    try:
-        response = requests.get(URL, headers=headers)
-        response.raise_for_status()
-
-        obs_list = response.json()["bmx"]["series"][0]["datos"]
-
-        if date is None:
-            obs = obs_list[-1]
-        else:
-            target = datetime.datetime.strptime(date, "%Y-%m-%d")
-            obs = min(
-                obs_list,
-                key=lambda o: abs(datetime.datetime.strptime(o["fecha"], "%d/%m/%Y") - target),
-            )
-
-        fecha = obs["fecha"]
-        fecha = datetime.datetime.strptime(fecha, "%d/%m/%Y").strftime("%Y-%m-%d")
-        value = float(obs["dato"])
-        label = f"nearest to {date}" if date else "most recent"
-        return f"The CETES 364-day rate ({label}) is {value:.4f}% as of {fecha}."
-
-    except ValueError:
-        return f"Invalid date format '{date}'. Please use YYYY-MM-DD (e.g. 2024-01-15)."
-    except Exception as exc:
-        return f"Error fetching CETES 364-day rate: {exc}"
-    
-@tool("get_cetes_728")
-def get_cetes_728(date: str | None = None) -> str:
-    URL = "https://www.banxico.org.mx/SieAPIRest/service/v1/series/SF349785/datos"
-    headers = {
-        "Bmx-Token": BANXICO_TOKEN,
-        "Content-Type": "application/json",
-    }
-    try:
-        response = requests.get(URL, headers=headers)
-        response.raise_for_status()
-
-        obs_list = response.json()["bmx"]["series"][0]["datos"]
-
-        if date is None:
-            obs = obs_list[-1]
-        else:
-            target = datetime.datetime.strptime(date, "%Y-%m-%d")
-            obs = min(
-                obs_list,
-                key=lambda o: abs(datetime.datetime.strptime(o["fecha"], "%d/%m/%Y") - target),
-            )
-
-        fecha = obs["fecha"]
-        fecha = datetime.datetime.strptime(fecha, "%d/%m/%Y").strftime("%Y-%m-%d")
-        value = float(obs["dato"])
-        label = f"nearest to {date}" if date else "most recent"
-        return f"The CETES 728-day rate ({label}) is {value:.4f}% as of {fecha}."
-
-    except ValueError:
-        return f"Invalid date format '{date}'. Please use YYYY-MM-DD (e.g. 2024-01-15)."
-    except Exception as exc:
-        return f"Error fetching CETES 728-day rate: {exc}"
-    
 @tool("get_mensual_inflation_mexico")
 def get_mensual_inflation_mexico(date: str | None = None) -> str:
     URL = "https://www.banxico.org.mx/SieAPIRest/service/v1/series/SP30578/datos"
@@ -427,15 +310,32 @@ def get_udis(date: str | None = None) -> str:
     except Exception as exc:
         return f"Error fetching UDIs value in Mexico: {exc}"
     
-@tool("get_tie_28")
-def get_tie_28(date: str | None = None) -> str:
-    URL = "https://www.banxico.org.mx/SieAPIRest/service/v1/series/SF43783/datos"
+TIIE_SERIES = {
+    28:  "SF43783",
+    91:  "SF43878",
+    182: "SF111916",
+}
+
+@tool("get_tiie_rate")
+def get_tiie_rate(term_days: int, date: str | None = None) -> str:
+    """
+    Fetches the TIIE (Tasa de Interés Interbancaria de Equilibrio) rate
+    for a given term in days from Banxico.
+    Valid terms are: 28, 91, 182.
+    """
+    if term_days not in TIIE_SERIES:
+        valid = ", ".join(str(k) for k in TIIE_SERIES)
+        return f"Invalid term '{term_days}'. Valid options are: {valid}."
+
+    series_id = TIIE_SERIES[term_days]
+    url = f"https://www.banxico.org.mx/SieAPIRest/service/v1/series/{series_id}/datos"
     headers = {
         "Bmx-Token": BANXICO_TOKEN,
         "Content-Type": "application/json",
     }
+
     try:
-        response = requests.get(URL, headers=headers)
+        response = requests.get(url, headers=headers)
         response.raise_for_status()
 
         obs_list = response.json()["bmx"]["series"][0]["datos"]
@@ -449,83 +349,16 @@ def get_tie_28(date: str | None = None) -> str:
                 key=lambda o: abs(datetime.datetime.strptime(o["fecha"], "%d/%m/%Y") - target),
             )
 
-        fecha = obs["fecha"]
-        fecha = datetime.datetime.strptime(fecha, "%d/%m/%Y").strftime("%Y-%m-%d")
+        fecha = datetime.datetime.strptime(obs["fecha"], "%d/%m/%Y").strftime("%Y-%m-%d")
         value = float(obs["dato"])
         label = f"nearest to {date}" if date else "most recent"
-        return f"The TIE 28-day rate ({label}) is {value:.4f}% as of {fecha}."
+        return f"The TIIE {term_days}-day rate ({label}) is {value:.4f}% as of {fecha}."
 
     except ValueError:
         return f"Invalid date format '{date}'. Please use YYYY-MM-DD (e.g. 2024-01-15)."
     except Exception as exc:
-        return f"Error fetching TIE 28-day rate: {exc}"
-    
-@tool("get_tie_91")
-def get_tie_91(date: str | None = None) -> str:
-    URL = "https://www.banxico.org.mx/SieAPIRest/service/v1/series/SF43878/datos"
-    headers = {
-        "Bmx-Token": BANXICO_TOKEN,
-        "Content-Type": "application/json",
-    }
-    try:
-        response = requests.get(URL, headers=headers)
-        response.raise_for_status()
+        return f"Error fetching TIIE {term_days}-day rate: {exc}"
 
-        obs_list = response.json()["bmx"]["series"][0]["datos"]
-
-        if date is None:
-            obs = obs_list[-1]
-        else:
-            target = datetime.datetime.strptime(date, "%Y-%m-%d")
-            obs = min(
-                obs_list,
-                key=lambda o: abs(datetime.datetime.strptime(o["fecha"], "%d/%m/%Y") - target),
-            )
-
-        fecha = obs["fecha"]
-        fecha = datetime.datetime.strptime(fecha, "%d/%m/%Y").strftime("%Y-%m-%d")
-        value = float(obs["dato"])
-        label = f"nearest to {date}" if date else "most recent"
-        return f"The TIE 91-day rate ({label}) is {value:.4f}% as of {fecha}."
-
-    except ValueError:
-        return f"Invalid date format '{date}'. Please use YYYY-MM-DD (e.g. 2024-01-15)."
-    except Exception as exc:
-        return f"Error fetching TIE 91-day rate: {exc}"
-    
-@tool("get_tie_182")
-def get_tie_182(date: str | None = None) -> str:
-    URL = "https://www.banxico.org.mx/SieAPIRest/service/v1/series/SF111916/datos"
-    headers = {
-        "Bmx-Token": BANXICO_TOKEN,
-        "Content-Type": "application/json",
-    }
-    try:
-        response = requests.get(URL, headers=headers)
-        response.raise_for_status()
-
-        obs_list = response.json()["bmx"]["series"][0]["datos"]
-
-        if date is None:
-            obs = obs_list[-1]
-        else:
-            target = datetime.datetime.strptime(date, "%Y-%m-%d")
-            obs = min(
-                obs_list,
-                key=lambda o: abs(datetime.datetime.strptime(o["fecha"], "%d/%m/%Y") - target),
-            )
-
-        fecha = obs["fecha"]
-        fecha = datetime.datetime.strptime(fecha, "%d/%m/%Y").strftime("%Y-%m-%d")
-        value = float(obs["dato"])
-        label = f"nearest to {date}" if date else "most recent"
-        return f"The TIE 182-day rate ({label}) is {value:.4f}% as of {fecha}."
-
-    except ValueError:
-        return f"Invalid date format '{date}'. Please use YYYY-MM-DD (e.g. 2024-01-15)."
-    except Exception as exc:
-        return f"Error fetching TIE 182-day rate: {exc}"
-    
 @tool("get_target_interest_rate_mexico")
 def get_target_interest_rate_mexico(date: str | None = None) -> str:
     URL = "https://www.banxico.org.mx/SieAPIRest/service/v1/series/SF61745/datos"
@@ -740,6 +573,25 @@ def get_news_sentiment(ticker: str) -> str:
         f"Top influencing headlines: {top_headlines}"
     )
     
+@tool("calculate_inflation_impact")
+def calculate_inflation_impact(amount: float, months: int, annual_inflation_rate: float) -> str:
+    monthly_rate = (1 + annual_inflation_rate / 100) ** (1 / 12) - 1
+    future_equivalent = amount * (1 + monthly_rate) ** months
+    purchasing_power_loss = future_equivalent - amount
+    effective_value = amount - purchasing_power_loss
+
+    return (
+        f"With an annual inflation rate of {annual_inflation_rate:.2f}%, "
+        f"{amount:.2f} pesos today will have the purchasing power of "
+        f"{effective_value:.2f} pesos after {months} month(s). "
+        f"That is a loss of {purchasing_power_loss:.2f} pesos in real value."
+    )
+
+@tool("multiply")
+def multiply(a: float, b: float) -> str:
+    result = a * b
+    return f"The result of {a} × {b} is {result}."
+
 @tool("respond_to_greeting")
 def respond_to_greeting() -> str:
     return "Hello! I'm a financial data agent. How can I assist you today?"
@@ -747,3 +599,4 @@ def respond_to_greeting() -> str:
 @tool("respond_no_available_tool")
 def respond_no_available_tool(tool_name: str) -> str:
     return f"Sorry, currently i'm capable of doing that. Check the list of avaiable tools for more information."
+
