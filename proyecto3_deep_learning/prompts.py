@@ -174,6 +174,24 @@ Example calls: ACTION: get_news_sentiment(AAPL)
                ACTION: get_news_sentiment(TSLA)
                ACTION: get_news_sentiment(BIMBOA.MX)
 
+### get_fundamental_analysis(ticker)
+Description: Performs a quantitative fundamental analysis scorecard for a stock.
+             Evaluates 15 metrics across four categories:
+               - Valuation      (P/E, P/B, EV/EBITDA, PEG) — sector-adjusted thresholds
+               - Profitability  (ROE, ROA, Gross margin, Net margin)
+               - Financial Health (D/E ratio, Current ratio, Interest coverage, FCF yield)
+               - Growth         (Revenue growth, Earnings growth, Dividend yield)
+             Each metric is scored 0 (weak), 1 (neutral/unavailable), or 2 (strong).
+             Composite score out of 30: >=70% → BUY | 40-69% → HOLD | <40% → SELL.
+             Apply the same exchange suffix rules as get_price_on_date.
+             Use this when the user asks for a fundamental analysis, valuation, financial
+             health overview, or a buy/sell/hold recommendation for a company.
+Returns: Single-paragraph scorecard with per-metric values and scores, category subtotals,
+         composite score, percentage, and a BUY/HOLD/SELL recommendation with rationale.
+Example calls: ACTION: get_fundamental_analysis(AAPL)
+               ACTION: get_fundamental_analysis(NVDA)
+               ACTION: get_fundamental_analysis(BIMBOA.MX)
+               
 ### calculate_inflation_impact(amount, months, annual_inflation_rate)
 Description: Calculates the loss of purchasing power of a given amount of money
              due to compound inflation over a number of months.
@@ -255,6 +273,23 @@ After tool result: FINAL: Sentiment analysis for Tesla, Inc. (TSLA) across 8 rec
 User: What is the market sentiment for Apple stock right now?
 ACTION: get_news_sentiment(AAPL)
 After tool result: FINAL: Sentiment analysis for Apple Inc. (AAPL) across 10 recent articles: Composite score: +0.1823 (POSITIVE). Top influencing headlines: [POSITIVE 88%] Apple reports record services revenue (CNBC) --- ...
+
+User: Can you do a fundamental analysis of Apple?
+ACTION: get_fundamental_analysis(AAPL)
+After tool result: FINAL: <full scorecard output from tool>
+ 
+User: Should I buy or sell Nvidia based on its fundamentals?
+ACTION: get_fundamental_analysis(NVDA)
+After tool result: FINAL: <full scorecard output from tool>
+ 
+User: Give me a fundamental valuation of Grupo Bimbo.
+ACTION: get_fundamental_analysis(BIMBOA.MX)
+After tool result: FINAL: <full scorecard output from tool>
+ 
+User: Is Tesla a good investment right now?
+ACTION: get_fundamental_analysis(TSLA)
+After tool result: FINAL: <full scorecard output from tool>
+
 
 User: What is the current 10-year treasury rate?
 ACTION: search_fred(10-year treasury constant maturity rate)

@@ -592,6 +592,222 @@ def multiply(a: float, b: float) -> str:
     result = a * b
     return f"The result of {a} × {b} is {result}."
 
+# --------------- sector-adjusted valuation thresholds -------------------------
+# Tuple layout: (pe_strong, pe_weak, pb_strong, pb_weak, ev_ebitda_strong, ev_ebitda_weak)
+# "strong" means the value that earns the maximum score of 2.
+# "weak"   means the value that earns the minimum score of 0.
+# Values between the two thresholds score 1 (neutral).
+_SECTOR_VALUATION_THRESHOLDS: dict[str, tuple] = {
+    "technology":         (25, 45, 4.0, 10.0, 15, 30),
+    "healthcare":         (20, 35, 3.0,  8.0, 14, 25),
+    "financial-services": (12, 20, 1.0,  2.5, 10, 18),
+    "consumer-cyclical":  (18, 30, 2.5,  6.0, 12, 22),
+    "consumer-defensive": (18, 28, 3.0,  6.0, 12, 20),
+    "energy":             (10, 20, 1.5,  3.0,  6, 14),
+    "basic-materials":    (12, 22, 1.5,  3.5,  8, 16),
+    "industrials":        (18, 30, 2.5,  5.0, 12, 20),
+    "real-estate":        (30, 55, 1.5,  3.5, 18, 30),
+    "utilities":          (15, 25, 1.5,  3.0, 10, 18),
+    "default":            (18, 35, 2.5,  6.0, 12, 22),
+}
+ 
+ 
+def _valuation_thresholds(sector_key: str | None) -> tuple:
+    key = (sector_key or "").lower()
+    return _SECTOR_VALUATION_THRESHOLDS.get(key, _SECTOR_VALUATION_THRESHOLDS["default"])
+ 
+ 
+def _score_metric(value: float, strong_threshold: float, weak_threshold: float,
+                  lower_is_better: bool = True) -> int:
+    """
+    Scores a single metric on a 0–2 scale.
+ 
+    For lower_is_better metrics (P/E, D/E, EV/EBITDA …):
+        value <= strong_threshold → 2
+        value >= weak_threshold   → 0
+        in between                → 1
+ 
+    For higher_is_better metrics (ROE, margins, FCF yield …):
+        value >= strong_threshold → 2
+        value <= weak_threshold   → 0
+        in between                → 1
+    """
+    if lower_is_better:
+        if value <= strong_threshold:
+            return 2
+        if value >= weak_threshold:
+            return 0
+        return 1
+    else:
+        if value >= strong_threshold:
+            return 2
+        if value <= weak_threshold:
+            return 0
+        return 1
+ 
+ 
+@tool("get_fundamental_analysis")
+def get_fundamental_analysis(ticker: str) -> str:
+    """
+    Performs a quantitative fundamental analysis scorecard for a given ticker.
+ 
+    Evaluates 15 metrics across four categories:
+      - Valuation      (P/E, P/B, EV/EBITDA, PEG)               max  8 pts
+      - Profitability  (ROE, ROA, Gross margin, Net margin)       max  8 pts
+      - Financial Health (D/E, Current ratio, IC, FCF yield)     max  8 pts
+      - Growth         (Revenue growth, Earnings growth, Div yield) max 6 pts
+                                                                 ──────────
+                                                          TOTAL   max 30 pts
+ 
+    Scoring per metric: 2 = strong, 1 = neutral / data unavailable, 0 = weak.
+    Valuation thresholds are sector-adjusted via yfinance sectorKey.
+    Composite: ≥70% → BUY | 40–69% → HOLD | <40% → SELL.
+ 
+    Apply the same exchange suffix rules as get_price_on_date (e.g. BIMBOA.MX).
+    """
+    t    = yf.Ticker(ticker)
+    info = t.info
+ 
+    company_name = info.get("longName", ticker)
+    sector_key   = info.get("sectorKey", None)
+    sector_label = info.get("sector", "Unknown sector")
+ 
+    pe_s, pe_w, pb_s, pb_w, ev_s, ev_w = _valuation_thresholds(sector_key)
+ 
+    def safe(key: str, scale: float = 1.0):
+        """Returns (scaled_value, is_available). Missing or non-numeric → (None, False)."""
+        raw = info.get(key)
+        if raw is None or not isinstance(raw, (int, float)):
+            return None, False
+        return raw * scale, True
+ 
+    # ── Valuation (max 8 pts) ──────────────────────────────────────────────────
+    pe,        pe_ok  = safe("trailingPE")
+    pb,        pb_ok  = safe("priceToBook")
+    ev_ebitda, ev_ok  = safe("enterpriseToEbitda")
+    peg,       peg_ok = safe("pegRatio")
+ 
+    pe_score  = _score_metric(pe,        pe_s, pe_w, lower_is_better=True) if pe_ok  else 1
+    pb_score  = _score_metric(pb,        pb_s, pb_w, lower_is_better=True) if pb_ok  else 1
+    ev_score  = _score_metric(ev_ebitda, ev_s, ev_w, lower_is_better=True) if ev_ok  else 1
+    peg_score = _score_metric(peg,       1.0,  2.0,  lower_is_better=True) if peg_ok else 1
+ 
+    valuation_score = pe_score + pb_score + ev_score + peg_score  # max 8
+ 
+    # ── Profitability (max 8 pts) ──────────────────────────────────────────────
+    roe,     roe_ok = safe("returnOnEquity", scale=100)
+    roa,     roa_ok = safe("returnOnAssets", scale=100)
+    gross_m, gm_ok  = safe("grossMargins",   scale=100)
+    net_m,   nm_ok  = safe("profitMargins",  scale=100)
+ 
+    roe_score = _score_metric(roe,     15.0, 8.0,  lower_is_better=False) if roe_ok else 1
+    roa_score = _score_metric(roa,      5.0, 2.0,  lower_is_better=False) if roa_ok else 1
+    gm_score  = _score_metric(gross_m, 40.0, 20.0, lower_is_better=False) if gm_ok  else 1
+    nm_score  = _score_metric(net_m,   10.0,  3.0, lower_is_better=False) if nm_ok  else 1
+ 
+    profit_score = roe_score + roa_score + gm_score + nm_score  # max 8
+ 
+    # ── Financial Health (max 8 pts) ───────────────────────────────────────────
+    de,      de_ok   = safe("debtToEquity")
+    cr,      cr_ok   = safe("currentRatio")
+    ebitda,  ebit_ok = safe("ebitda")
+    int_exp, ie_ok   = safe("interestExpense")
+    fcf,     fcf_ok  = safe("freeCashflow")
+    mktcap,  mc_ok   = safe("marketCap")
+ 
+    # yfinance returns D/E as a percentage (e.g. 150 means 1.50); normalise to ratio.
+    de_adj   = de / 100.0 if de_ok else None
+    de_score = _score_metric(de_adj, 0.5, 1.5, lower_is_better=True) if de_ok else 1
+ 
+    cr_score = _score_metric(cr, 2.0, 1.0, lower_is_better=False) if cr_ok else 1
+ 
+    # Interest coverage = EBITDA / |interest expense|; higher is better.
+    if ebit_ok and ie_ok and int_exp != 0:
+        ic       = abs(ebitda) / abs(int_exp)
+        ic_score = _score_metric(ic, 5.0, 2.0, lower_is_better=False)
+    else:
+        ic       = None
+        ic_score = 1
+ 
+    # FCF yield = FCF / market cap (%); >5% strong, <0% weak.
+    if fcf_ok and mc_ok and mktcap > 0:
+        fcf_yield = (fcf / mktcap) * 100
+        fcf_score = _score_metric(fcf_yield, 5.0, 0.0, lower_is_better=False)
+    else:
+        fcf_yield = None
+        fcf_score = 1
+ 
+    health_score = de_score + cr_score + ic_score + fcf_score  # max 8
+ 
+    # ── Growth (max 6 pts) ─────────────────────────────────────────────────────
+    rev_g,  rg_ok = safe("revenueGrowth",  scale=100)
+    earn_g, eg_ok = safe("earningsGrowth", scale=100)
+    div_y,  dy_ok = safe("dividendYield",  scale=100)
+ 
+    rev_score  = _score_metric(rev_g,  10.0, 0.0, lower_is_better=False) if rg_ok else 1
+    earn_score = _score_metric(earn_g, 10.0, 0.0, lower_is_better=False) if eg_ok else 1
+ 
+    # Dividend yield: 2–5.5% is the ideal income range.
+    # Below 0.5% is neutral (growth company, no penalty). Above 6% may signal distress.
+    if dy_ok:
+        if 2.0 <= div_y <= 5.5:
+            div_score = 2
+        elif div_y > 6.0 or div_y < 0.5:
+            div_score = 0
+        else:
+            div_score = 1
+    else:
+        div_score = 1  # no dividend data → neutral
+ 
+    growth_score = rev_score + earn_score + div_score  # max 6
+ 
+    # ── Composite & recommendation ─────────────────────────────────────────────
+    MAX_SCORE = 30
+    composite = valuation_score + profit_score + health_score + growth_score
+    pct       = composite / MAX_SCORE
+ 
+    if pct >= 0.70:
+        recommendation = "BUY"
+        rationale      = "the company scores strongly across most fundamental dimensions"
+    elif pct >= 0.40:
+        recommendation = "HOLD"
+        rationale      = "the fundamentals are mixed with no compelling entry or exit signal"
+    else:
+        recommendation = "SELL"
+        rationale      = "the company shows material weakness across multiple fundamental dimensions"
+ 
+    def fmt(value, decimals: int = 2, suffix: str = "") -> str:
+        return "N/A" if value is None else f"{value:.{decimals}f}{suffix}"
+ 
+    return (
+        f"Fundamental analysis scorecard for {company_name} ({ticker.upper()}) | Sector: {sector_label}. "
+        f"VALUATION ({valuation_score}/8): "
+        f"P/E {fmt(pe)}x [score {pe_score}/2], "
+        f"P/B {fmt(pb)}x [score {pb_score}/2], "
+        f"EV/EBITDA {fmt(ev_ebitda)}x [score {ev_score}/2], "
+        f"PEG {fmt(peg)} [score {peg_score}/2]. "
+        f"PROFITABILITY ({profit_score}/8): "
+        f"ROE {fmt(roe)}% [score {roe_score}/2], "
+        f"ROA {fmt(roa)}% [score {roa_score}/2], "
+        f"Gross margin {fmt(gross_m)}% [score {gm_score}/2], "
+        f"Net margin {fmt(net_m)}% [score {nm_score}/2]. "
+        f"FINANCIAL HEALTH ({health_score}/8): "
+        f"D/E {fmt(de_adj)} [score {de_score}/2], "
+        f"Current ratio {fmt(cr)} [score {cr_score}/2], "
+        f"Interest coverage {fmt(ic)}x [score {ic_score}/2], "
+        f"FCF yield {fmt(fcf_yield)}% [score {fcf_score}/2]. "
+        f"GROWTH ({growth_score}/6): "
+        f"Revenue growth {fmt(rev_g)}% [score {rev_score}/2], "
+        f"Earnings growth {fmt(earn_g)}% [score {earn_score}/2], "
+        f"Dividend yield {fmt(div_y)}% [score {div_score}/2]. "
+        f"COMPOSITE SCORE: {composite}/{MAX_SCORE} ({pct:.0%}). "
+        f"RECOMMENDATION: {recommendation} — {rationale}."
+    )
+
+
+
+
+
 @tool("respond_to_greeting")
 def respond_to_greeting() -> str:
     return "Hello! I'm a financial data agent. How can I assist you today?"
