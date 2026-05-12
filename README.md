@@ -8,8 +8,10 @@
 ├── requirements.txt # Python dependencies
 │
 ├── notebooks/ # Jupyter notebooks for exploration and testing
-│ ├── 0.01-lejdm-yfinance-tools.ipynb # Initial exploration of yfinance tools for market data
-│ └── 3.01-lejdm-trying-qwen2.5-1.5B.ipynb # Testing Qwen2.5 model for potential alternatives
+│ ├── 0.01-lejdm-tool-testing.ipynb # Initial exploration and testing of financial tools
+│ ├── 3.01-lejdm-trying-qwen2.5-1.5B.ipynb # Testing Qwen2.5 model for potential alternatives
+│ ├── 3.02-lejdm-sentimental-finbert.ipynb # Sentiment analysis experiments with FinBERT
+│ └── 3.03-smdo-details_and_optimizations.ipynb # Agent detail improvements and optimizations
 │
 └── proyecto3_deep_learning/ # Main agent package
   ├── agent.py # Core Agent class that orchestrates tool calling and response handling
@@ -19,7 +21,7 @@
   ├── model.py # API-based model runner (LLaMA via NVIDIA NIM)
   ├── parsing.py # Parses LLM responses into ACTION / FINAL commands
   ├── prompts.py # System prompt with tool definitions and usage rules
-  └── tools.py # Registry of all available tools (stock prices, portfolio optimization, Banxico data, etc.)
+  └── tools.py # Registry of all available tools (stock prices, portfolio optimization, sentiment, fundamentals, Banxico data, etc.)
 ```
 
 Financial tool-using agent with a Gradio interface. The system uses an LLM through NVIDIA NIM (OpenAI-compatible API), forces tool-calling behavior with a strict prompt, executes financial data tools, and returns both final answer and execution trace.
@@ -33,6 +35,9 @@ This project implements an interactive financial assistant focused on:
 - Portfolio optimization (minimum variance, maximum Sharpe, target semivariance)
 - Mexican macro indicators from Banxico (CETES, TIIE, inflation, UDIS, target rate)
 - FX cross rates (e.g., EUR/USD, USD/CAD)
+- News sentiment analysis powered by FinBERT (recency-weighted, per-ticker)
+- Fundamental analysis (valuation metrics: P/E, P/B, EV/EBITDA, scored by sector)
+- Inflation impact calculator and basic arithmetic utilities
 
 The app is designed around an agent loop:
 
@@ -61,6 +66,8 @@ Only direct, code-level dependencies are used:
 - `pandas`
 - `scipy`
 - `requests`
+- `transformers`
+- `torch`
 
 ## Environment Variables
 
