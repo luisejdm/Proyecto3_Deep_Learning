@@ -42,15 +42,38 @@ def build_demo() -> gr.Blocks:
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, sans-serif !important;
         box-sizing: border-box !important;
     }
+
+    /* ========== TITLE ========== */
+    #app-title {
+        background: transparent !important;
+        border: none !important;
+        padding: 8px 0 !important;
+    }
+
+    /* ========== DISCLAIMER BANNER ========== */
+    #disclaimer-banner {
+        background-color: #3F3F46 !important;
+        border: 2px solid #FF2717 !important;
+        border-left: 6px solid #FEA12D !important;
+        border-radius: 8px !important;
+        padding: 16px 20px !important;
+        margin-bottom: 12px !important;
+    }
+    #disclaimer-banner p {
+        margin: 2px 0 !important;
+        color: #E4E4E7 !important;
+    }
     """
-    
+
     with gr.Blocks(theme=gr.themes.Base(), title="Financial Agent", css=custom_css) as demo:
+        
         gr.Markdown(
             """
             # Financial Agent
             Uses **LLaMA 3.3 70B** via NVIDIA NIM (OpenAI-compatible API).
             Ask for stock prices, company profiles, and more! The agent can use tools to fetch real-time data and provide accurate responses.
-            """
+            """,
+            elem_id="app-title",
         )
 
         with gr.Row():
@@ -111,6 +134,22 @@ def build_demo() -> gr.Blocks:
             | Calculate the impact of inflation | "how much would inflation in mexico affect my 1000 pesos over 5 months?" |
             | Make a fundamental analysis of a stock | "What is the fundamental analysis of Microsoft?" |
             """
+        )
+
+        gr.Markdown(
+            """
+            ⚠️ **EDUCATIONAL PURPOSES ONLY — NOT FINANCIAL ADVICE**
+
+            This agent is a student project built for a Deep Learning course. It is **not** a licensed financial advisor,
+            broker, or investment service. All outputs — including stock prices, portfolio suggestions, economic indicators,
+            and any other financial data — are provided **strictly for educational and demonstration purposes**.
+
+            **Do not use this tool to make real investment, trading, or financial decisions.**
+            The information may be inaccurate, delayed, or incomplete. Always consult a qualified financial professional
+            before making any investment decision. The authors assume no liability for any actions taken based on
+            the outputs of this agent.
+            """,
+            elem_id="disclaimer-banner",
         )
 
     return demo
