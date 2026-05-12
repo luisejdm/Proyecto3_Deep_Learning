@@ -1,5 +1,10 @@
 # Proyecto3_Deep_Learning
 
+## App Demo
+
+A live demo is available for educational purposes on Hugging Face Spaces:
+[https://huggingface.co/spaces/ITESO-Deep-Learning/Financial_Agent](https://huggingface.co/spaces/ITESO-Deep-Learning/Financial_Agent)
+
 ## Project Organization
 
 ```
