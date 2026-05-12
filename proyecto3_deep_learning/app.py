@@ -109,7 +109,7 @@ def build_demo() -> gr.Blocks:
             | Get cross-currency exchange rates | "What's the current exchange rate for EUR/USD?" |
             | Analyze news sentiment for a stock | "What is the market sentiment around Tesla right now?" |
             | Calculate the impact of inflation | "how much would inflation in mexico affect my 1000 pesos over 5 months?" |
-
+            | Make a fundamental analysis of a stock | "What is the fundamental analysis of Microsoft?" |
             """
         )
 

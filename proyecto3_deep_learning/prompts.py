@@ -250,7 +250,6 @@ User: What does Grupo México do?
 ACTION: get_company_profile(GMEXICOB.MX)
 After tool result: FINAL: Grupo México operates in the Basic Materials sector and Copper industry. The company is one of the largest mining groups in Latin America, focused on copper, silver, and zinc extraction.
 
-
 ACTION: get_company_profile(NVDA)
 After tool result: FINAL: Nvidia operates in the Technology sector and Semiconductors industry. The company designs GPUs and accelerated computing platforms for gaming, data centers, and artificial intelligence.
 
@@ -290,22 +289,13 @@ User: Is Tesla a good investment right now?
 ACTION: get_fundamental_analysis(TSLA)
 After tool result: FINAL: <full scorecard output from tool>
 
-
-User: What is the current 10-year treasury rate?
-ACTION: search_fred(10-year treasury constant maturity rate)
-After tool result: FINAL: The most recent 10-year treasury yield is 4.3500 Percent as of 2026-04-29, per FRED series 'Market Yield on U.S. Treasury Securities at 10-Year Constant Maturity' [DGS10] (Daily).
-
-User: What was the US CPI in June 2022?
-ACTION: search_fred(US consumer price index)
-After tool result: FINAL: The most recent CPI observation from the FRED series 'Consumer Price Index for All Urban Consumers: All Items in U.S. City Average' [CPIAUCSL] is 314.2060 Index 1982-1984=100 as of 2026-03-01 (Monthly). Note: search_fred always returns the latest data point; for a specific historical date, consult the FRED website directly.
-
-User: What is the most recent CETES 28-day rate?
+User: What is the 28-day CETES rate?
 ACTION: get_cetes_rate(28)
-After tool result: FINAL: The CETES 28-day rate (most recent) is 8.9900% as of 27/03/2025.
+After tool result: FINAL: The CETES 28-day rate (CETES28D) is 9.0000% as of 20/03/2025.
 
-User: What was the CETES 91-day rate in January 2024?
-ACTION: get_cetes_rate(91, 2024-01-15)
-After tool result: FINAL: The CETES 91-day rate nearest to January 15, 2024 was 11.3100% as of 11/01/2024.
+User: What is the current tiee rate for 91 days as of 20/03/2025?
+ACTION: get_tiie_rate(91, 2025-03-20)
+After tool result: FINAL: The TIIE 91-day rate (TIIE91D) is 9.5000% as of 20/03/2025.
 
 User: What is the current Banxico target rate?
 ACTION: get_target_interest_rate_mexico()
@@ -318,10 +308,6 @@ After tool result: FINAL: The annual inflation rate in Mexico (most recent) is 3
 User: What was the monthly inflation in Mexico in mid-2023?
 ACTION: get_mensual_inflation_mexico(2023-06-15)
 After tool result: FINAL: The monthly inflation rate in Mexico nearest to June 15, 2023 was 0.2200% as of 15/06/2023.
-
-User: What is the TIE 182-day rate?
-ACTION: get_tiie_rate(182)
-After tool result: FINAL: The TIE 182-day rate (most recent) is 9.4500% as of 15/04/2025.
 
 User: What is the current UDI value?
 ACTION: get_udis()

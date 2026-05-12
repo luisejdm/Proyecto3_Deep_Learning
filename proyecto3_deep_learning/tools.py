@@ -213,7 +213,7 @@ def get_cetes_rate(term_days: int, date: str | None = None) -> str:
 
 @tool("get_mensual_inflation_mexico")
 def get_mensual_inflation_mexico(date: str | None = None) -> str:
-    URL = "https://www.banxico.org.mx/SieAPIRest/service/v1/series/SP30578/datos"
+    URL = "https://www.banxico.org.mx/SieAPIRest/service/v1/series/SP30577/datos"
     headers = {
         "Bmx-Token": BANXICO_TOKEN,
         "Content-Type": "application/json",
@@ -246,7 +246,7 @@ def get_mensual_inflation_mexico(date: str | None = None) -> str:
     
 @tool("get_inflation_mexico")
 def get_inflation_mexico(date: str | None = None) -> str:
-    URL = "https://www.banxico.org.mx/SieAPIRest/service/v1/series/SP30577/datos"
+    URL = "https://www.banxico.org.mx/SieAPIRest/service/v1/series/SP30578/datos"
     headers = {
         "Bmx-Token": BANXICO_TOKEN,
         "Content-Type": "application/json",
